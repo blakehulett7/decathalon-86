@@ -6,9 +6,6 @@ import (
 	"os"
 )
 
-const MovOperand = byte(34)
-const RegisterToRegisterMod = byte(3)
-
 var RegisterTable = [8][2]string{
 	{"al", "ax"},
 	{"cl", "cx"},
@@ -30,78 +27,87 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(assembled)%2 != 0 {
-		fmt.Println("invalid instruction length, must be a multiple of 2 bytes")
-		os.Exit(1)
+	fmt.Println("bits 16")
+
+	r := &Reader{
+		Data:   assembled,
+		Cursor: 0,
 	}
 
-	for i := 1; i < len(assembled); i += 2 {
-		line := assembled[i-1 : i+1]
-		ParseLine(line)
-	}
+	for r.Cursor < uint8(len(r.Data)) {
+		line := r.Read()
+		opcode := ParseOpCode(line)
 
+		switch opcode {
+		default:
+		case ImmediateToRegister:
+			displacement, register := ParseImmediateToRegisterParams(line)
+			num := ParseImmediateData(r, displacement)
+			fmt.Printf("mov %s, %d\n", register, num)
+		case Normal:
+			direction, w := ParseNormalModifiers(line)
+			line = r.Read()
+			mode, first_register, second_register := ParseNormalArguments(line, w)
+
+			if mode != 3 {
+				fmt.Println("edge")
+			}
+
+			invert_registers := direction == 0
+
+			dest := first_register
+			src := second_register
+
+			if invert_registers {
+				src = first_register
+				dest = second_register
+			}
+
+			fmt.Printf("mov %s, %s\n", dest, src)
+		}
+	}
 }
 
-func ParseLine(line []byte) {
-	if len(line) != 2 {
-		fmt.Println("unexpected instruction line length")
-		os.Exit(1)
+func ParseOpCode(line byte) OpCode {
+	code := line >> 4
+	if code == 0b00001011 {
+		return ImmediateToRegister
 	}
 
-	first_byte := line[0]
-	second_byte := line[1]
-
-	operand := first_byte >> 2
-	if operand != MovOperand {
-		fmt.Println("unexpected operand, only MOV is supported")
-		os.Exit(1)
+	code = line >> 2
+	if code == 0b00100010 {
+		return Normal
 	}
 
-	w := first_byte & 0b00000001
-
-	d := (first_byte >> 1) & 0b00000001
-	invert_registers := d == 1
-
-	mod := second_byte >> 6
-	if mod != RegisterToRegisterMod {
-		fmt.Println("unexpected mode, only register to register is supported")
-		os.Exit(1)
-	}
-
-	first_register_row := (second_byte >> 3) & 0b00000111
-
-	if first_register_row > 7 {
-		fmt.Println("invalid first register code, only 8 register codes are supported")
-		os.Exit(1)
-	}
-
-	first_register := RegisterTable[first_register_row][w]
-
-	second_register_row := second_byte & 0b00000111
-
-	second_register := RegisterTable[second_register_row][w]
-
-	if second_register_row > 7 {
-		fmt.Println("invalid second register code, only 8 register codes are supported")
-		os.Exit(1)
-	}
-
-	dest := first_register
-	src := second_register
-
-	if !invert_registers {
-		src = first_register
-		dest = second_register
-	}
-
-	fmt.Println("bits 16")
-	fmt.Print("mov ")
-	fmt.Print(dest)
-	fmt.Print(", ")
-	fmt.Print(src)
-	fmt.Println()
+	fmt.Printf("invalid op code, line: %08b\n", line)
+	os.Exit(1)
+	return NoOp
 }
 
 func PrintByte(b byte) {
 	fmt.Printf("%08b\n", b)
 }
+
+type Reader struct {
+	Data   []byte
+	Cursor uint8
+}
+
+func (r *Reader) Read() byte {
+	if r.Cursor > uint8(len(r.Data)) {
+		fmt.Println("cursor can't exceed data lenght")
+		os.Exit(1)
+	}
+
+	b := r.Data[r.Cursor]
+	r.Cursor++
+	return b
+}
+
+type OpCode uint8
+
+const (
+	ImmediateToRegister OpCode = iota
+	Normal
+	NoOp
+)
