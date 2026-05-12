@@ -40,6 +40,8 @@ func main() {
 
 		switch opcode {
 		default:
+			fmt.Println("invalid op code")
+			os.Exit(1)
 		case ImmediateToRegister:
 			displacement, register := ParseImmediateToRegisterParams(line)
 			num := ParseImmediateData(r, displacement)
@@ -47,7 +49,9 @@ func main() {
 		case Normal:
 			direction, w := ParseNormalModifiers(line)
 			line = r.Read()
-			mode, first_register, second_register := ParseNormalArguments(line, w)
+			mode, reg, reg_mem := ParseNormalArguments(line, w)
+
+			register, register_memory := ParseRegisters(r, w, mode, reg, reg_mem)
 
 			if mode != 3 {
 				fmt.Println("edge")
@@ -55,12 +59,12 @@ func main() {
 
 			invert_registers := direction == 0
 
-			dest := first_register
-			src := second_register
+			dest := register
+			src := register_memory
 
 			if invert_registers {
-				src = first_register
-				dest = second_register
+				src = register
+				dest = register_memory
 			}
 
 			fmt.Printf("mov %s, %s\n", dest, src)
