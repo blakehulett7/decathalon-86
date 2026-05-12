@@ -30,15 +30,26 @@ func ParseNormalModifiers(line byte) (direction, w uint8) {
 }
 
 func ParseRegisters(r *Reader, w, mode, reg, reg_mem uint8) (register, register_memory string) {
+	register = RegisterTable[reg][w]
+
 	switch mode {
 	default:
 		fmt.Println("mode cannot exceed 3")
 		os.Exit(1)
+		return
+	case 0:
+		register_memory = fmt.Sprintf("[%s]", RegisterMemoryTable[reg_mem])
+		return
+	case 1, 2:
+		num := ParseImmediateData(r, mode)
+		if num == 0 {
+			register_memory = fmt.Sprintf("[%s]", RegisterMemoryTable[reg_mem])
+			return
+		}
+		register_memory = fmt.Sprintf("[%s + %d]", RegisterMemoryTable[reg_mem], num)
+		return
 	case 3:
-		register = RegisterTable[reg][w]
 		register_memory = RegisterTable[reg_mem][w]
 		return
 	}
-
-	return "", ""
 }

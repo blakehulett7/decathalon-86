@@ -6,6 +6,17 @@ import (
 	"os"
 )
 
+var RegisterMemoryTable = [8]string{
+	"bx + si",
+	"bx + di",
+	"bp + si",
+	"bp + di",
+	"si",
+	"di",
+	"bp",
+	"bx",
+}
+
 var RegisterTable = [8][2]string{
 	{"al", "ax"},
 	{"cl", "cx"},
@@ -53,12 +64,7 @@ func main() {
 
 			register, register_memory := ParseRegisters(r, w, mode, reg, reg_mem)
 
-			if mode != 3 {
-				fmt.Println("edge")
-			}
-
 			invert_registers := direction == 0
-
 			dest := register
 			src := register_memory
 
