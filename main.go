@@ -48,50 +48,36 @@ func main() {
 	for r.Cursor < uint8(len(r.Data)) {
 		line := r.Read()
 		opcode := ParseOpCode(line)
-
-		switch opcode {
-		default:
-			fmt.Println("invalid op code")
-			os.Exit(1)
-		case ImmediateToRegister:
-			displacement, register := ParseImmediateToRegisterParams(line)
-			num := ParseImmediateData(r, displacement)
-			fmt.Printf("mov %s, %d\n", register, num)
-		case Normal:
-			direction, w := ParseNormalModifiers(line)
-			line = r.Read()
-			mode, reg, reg_mem := ParseNormalArguments(line, w)
-
-			register, register_memory := ParseRegisters(r, w, mode, reg, reg_mem)
-
-			invert_registers := direction == 0
-			dest := register
-			src := register_memory
-
-			if invert_registers {
-				src = register
-				dest = register_memory
-			}
-
-			fmt.Printf("mov %s, %s\n", dest, src)
-		}
+		PerformOp(r, opcode, line)
 	}
 }
 
 func ParseOpCode(line byte) OpCode {
 	code := line >> 4
-	if code == 0b00001011 {
+	if code == 0b1011 {
 		return ImmediateToRegister
 	}
 
 	code = line >> 2
-	if code == 0b00100010 {
+	if code == 0b100010 {
 		return Normal
 	}
 
 	fmt.Printf("invalid op code, line: %08b\n", line)
 	os.Exit(1)
 	return NoOp
+}
+
+func PerformOp(r *Reader, code OpCode, line byte) {
+	switch code {
+	default:
+		fmt.Println("invalid op code")
+		os.Exit(1)
+	case ImmediateToRegister:
+		PerformImmediateToRegister(r, line)
+	case Normal:
+		PerformNormal(r, line)
+	}
 }
 
 func PrintByte(b byte) {

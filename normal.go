@@ -5,6 +5,25 @@ import (
 	"os"
 )
 
+func PerformNormal(r *Reader, line byte) {
+	direction, w := ParseNormalModifiers(line)
+	line = r.Read()
+	mode, reg, reg_mem := ParseNormalArguments(line, w)
+
+	register, register_memory := ParseRegisters(r, w, mode, reg, reg_mem)
+
+	invert_registers := direction == 0
+	dest := register
+	src := register_memory
+
+	if invert_registers {
+		src = register
+		dest = register_memory
+	}
+
+	fmt.Printf("mov %s, %s\n", dest, src)
+}
+
 func ParseNormalArguments(line byte, w uint8) (mode, reg, reg_mem uint8) {
 	mode = line >> 6
 
@@ -44,6 +63,10 @@ func ParseRegisters(r *Reader, w, mode, reg, reg_mem uint8) (register, register_
 		num := ParseImmediateData(r, mode)
 		if num == 0 {
 			register_memory = fmt.Sprintf("[%s]", RegisterMemoryTable[reg_mem])
+			return
+		}
+		if num < 0 {
+			register_memory = fmt.Sprintf("[%s - %d]", RegisterMemoryTable[reg_mem], num*-1)
 			return
 		}
 		register_memory = fmt.Sprintf("[%s + %d]", RegisterMemoryTable[reg_mem], num)
