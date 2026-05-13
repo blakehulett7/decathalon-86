@@ -63,6 +63,11 @@ func ParseOpCode(line byte) OpCode {
 		return Normal
 	}
 
+	code = line >> 1
+	if code == 0b1100011 {
+		return ImmediateToRegisterMemory
+	}
+
 	fmt.Printf("invalid op code, line: %08b\n", line)
 	os.Exit(1)
 	return NoOp
@@ -75,6 +80,8 @@ func PerformOp(r *Reader, code OpCode, line byte) {
 		os.Exit(1)
 	case ImmediateToRegister:
 		PerformImmediateToRegister(r, line)
+	case ImmediateToRegisterMemory:
+		PerformImmediateToRegisterMemory(r, line)
 	case Normal:
 		PerformNormal(r, line)
 	}
@@ -104,6 +111,7 @@ type OpCode uint8
 
 const (
 	ImmediateToRegister OpCode = iota
+	ImmediateToRegisterMemory
 	Normal
 	NoOp
 )

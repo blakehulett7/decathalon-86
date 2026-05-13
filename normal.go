@@ -57,6 +57,11 @@ func ParseRegisters(r *Reader, w, mode, reg, reg_mem uint8) (register, register_
 		os.Exit(1)
 		return
 	case 0:
+		if reg_mem == 0b110 {
+			direct_address := ParseImmediateData(r, 2)
+			register_memory = fmt.Sprintf("[%d]", direct_address)
+			return
+		}
 		register_memory = fmt.Sprintf("[%s]", RegisterMemoryTable[reg_mem])
 		return
 	case 1, 2:
