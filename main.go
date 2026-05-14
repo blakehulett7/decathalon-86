@@ -74,6 +74,17 @@ func ParseOpCode(line byte) OpCode {
 		return AccumulatorToMemory
 	}
 
+	code = line & 0b11000100
+	if code == 0b00000000 {
+		return ArithmeticNormal
+	}
+	if code == 0b10000000 {
+		return ArithmeticToRegisterMemory
+	}
+	if code == 0b00000100 {
+		return ArithmeticAccumulator
+	}
+
 	fmt.Printf("invalid op code, line: %08b\n", line)
 	os.Exit(1)
 	return NoOp
@@ -84,6 +95,12 @@ func PerformOp(r *Reader, code OpCode, line byte) {
 	default:
 		fmt.Println("invalid op code")
 		os.Exit(1)
+	case ArithmeticAccumulator:
+		PerformArithmeticAccumulator(r, line)
+	case ArithmeticNormal:
+		PerformArithmeticNormal(r, line)
+	case ArithmeticToRegisterMemory:
+		PerformArithmeticToRegisterMemory(r, line)
 	case AccumulatorToMemory:
 		PerformAccumulatorToMemory(r, line)
 	case ImmediateToRegister:
@@ -120,7 +137,10 @@ func (r *Reader) Read() byte {
 type OpCode uint8
 
 const (
-	AccumulatorToMemory OpCode = iota
+	ArithmeticAccumulator OpCode = iota
+	ArithmeticNormal
+	ArithmeticToRegisterMemory
+	AccumulatorToMemory
 	ImmediateToRegister
 	ImmediateToRegisterMemory
 	MemoryToAccumulator
