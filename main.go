@@ -85,6 +85,10 @@ func ParseOpCode(line byte) OpCode {
 		return ArithmeticAccumulator
 	}
 
+	if line == JNZ {
+		return Jnz
+	}
+
 	fmt.Printf("invalid op code, line: %08b\n", line)
 	os.Exit(1)
 	return NoOp
@@ -111,6 +115,10 @@ func PerformOp(r *Reader, code OpCode, line byte) {
 		PerformMemoryToAccumulator(r, line)
 	case Normal:
 		PerformNormal(r, line)
+	case Jnz:
+		fmt.Print("jnz ")
+		line = r.Read()
+		fmt.Println(int8(line))
 	}
 }
 
@@ -146,4 +154,9 @@ const (
 	MemoryToAccumulator
 	Normal
 	NoOp
+	Jnz
+)
+
+const (
+	JNZ byte = 0b01110101
 )
